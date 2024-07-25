@@ -50,6 +50,18 @@ type JsonServerStatus struct {
 	Message string `json:"message,omitempty"`
 }
 
+func NewJsonServerStatus(err error) *JsonServerStatus {
+	state := SyncedJsonServerState
+	message := "Synced successfully!"
+
+	if err != nil {
+		state = ErrorJsonServerState
+		message = err.Error()
+	}
+
+	return &JsonServerStatus{state, message}
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

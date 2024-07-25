@@ -23,7 +23,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -82,7 +84,7 @@ func (r *JsonServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if apierrors.IsNotFound(err) == false {
 			log.Log.Error(err, "Failed to fetch ConfigMap",
 				"NamespacedName", req.NamespacedName)
-			return ctrl.Result{}, err
+			return r.updateStatus(ctx, jsonServer, err)
 		}
 
 		log.Log.Info("ConfigMap not found. Creating...", "NamespacedName", req.NamespacedName)
@@ -90,14 +92,14 @@ func (r *JsonServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.createConfigMap(ctx, req, jsonServer); err != nil {
 			if apierrors.IsAlreadyExists(err) == false {
 				log.Log.Error(err, "Failed to create ConfigMap", "NamespacedName", req.NamespacedName)
-				return ctrl.Result{}, err
+				return r.updateStatus(ctx, jsonServer, err)
 			}
 
 			log.Log.Info("ConfigMap already exist", "NamespacedName", req.NamespacedName)
 			//TODO check owner reference, if JsonServer isn't owner - return error
 		} else {
 			log.Log.Info("Successfully created ConfigMap", "NamespacedName", req.NamespacedName)
-			return ctrl.Result{}, nil
+			return r.updateStatus(ctx, jsonServer, nil)
 		}
 	}
 
@@ -107,7 +109,7 @@ func (r *JsonServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if apierrors.IsNotFound(err) == false {
 			log.Log.Error(err, "Failed to fetch Deployment",
 				"NamespacedName", req.NamespacedName)
-			return ctrl.Result{}, err
+			return r.updateStatus(ctx, jsonServer, err)
 		}
 
 		log.Log.Info("Deployment not found. Creating...", "NamespacedName", req.NamespacedName)
@@ -115,14 +117,14 @@ func (r *JsonServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.createDeployment(ctx, req, jsonServer); err != nil {
 			if apierrors.IsAlreadyExists(err) == false {
 				log.Log.Error(err, "Failed to create Deployment", "NamespacedName", req.NamespacedName)
-				return ctrl.Result{}, err
+				return r.updateStatus(ctx, jsonServer, err)
 			}
 
 			log.Log.Info("ConfigMap already exist", "NamespacedName", req.NamespacedName)
 			//TODO check owner reference, if JsonServer isn't owner - return error
 		} else {
 			log.Log.Info("Successfully created Deployment", "NamespacedName", req.NamespacedName)
-			return ctrl.Result{}, nil
+			return r.updateStatus(ctx, jsonServer, nil)
 		}
 	}
 
@@ -131,7 +133,7 @@ func (r *JsonServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err := r.Get(ctx, req.NamespacedName, service); err != nil {
 		if apierrors.IsNotFound(err) == false {
 			log.Log.Error(err, "Failed to fetch Service", "NamespacedName", req.NamespacedName)
-			return ctrl.Result{}, err
+			return r.updateStatus(ctx, jsonServer, err)
 		}
 
 		log.Log.Info("Service not found. Creating...", "NamespacedName", req.NamespacedName)
@@ -139,18 +141,18 @@ func (r *JsonServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if err := r.createService(ctx, req, jsonServer); err != nil {
 			if apierrors.IsAlreadyExists(err) == false {
 				log.Log.Error(err, "Failed to create Service", "NamespacedName", req.NamespacedName)
-				return ctrl.Result{}, err
+				return r.updateStatus(ctx, jsonServer, err)
 			}
 
 			log.Log.Info("Service already exist", "NamespacedName", req.NamespacedName)
 			//TODO check owner reference, if JsonServer isn't owner - return error
 		} else {
 			log.Log.Info("Successfully created Service", "NamespacedName", req.NamespacedName)
-			return ctrl.Result{}, nil
+			return r.updateStatus(ctx, jsonServer, nil)
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return r.updateStatus(ctx, jsonServer, nil)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -291,4 +293,31 @@ func (r *JsonServerReconciler) generateService(jsonServer *v1.JsonServer) *corev
 			},
 		},
 	}
+}
+
+func (r *JsonServerReconciler) updateStatus(ctx context.Context, jsonServer *v1.JsonServer, originErr error) (ctrl.Result, error) {
+	newStatus := v1.NewJsonServerStatus(originErr)
+	nn := types.NamespacedName{Name: jsonServer.Name, Namespace: jsonServer.Namespace}
+
+	if reflect.DeepEqual(jsonServer.Status, newStatus) == false {
+		jsonServer.Status = *newStatus
+		if err := r.Status().Update(ctx, jsonServer); err != nil {
+			if apierrors.IsConflict(err) {
+				latest := &v1.JsonServer{}
+
+				if err := r.Get(ctx, client.ObjectKeyFromObject(jsonServer), latest); err != nil {
+					log.Log.Error(err, "Failed to fetch JsonServer",
+						"NamespacedName", nn)
+					return ctrl.Result{}, err
+				}
+
+				return r.updateStatus(ctx, latest, originErr)
+			}
+			log.Log.Error(err, "Failed to update JsonServer status", "NamespacedName", nn)
+
+			return ctrl.Result{}, err
+		}
+	}
+
+	return ctrl.Result{}, originErr
 }
