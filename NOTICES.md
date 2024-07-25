@@ -128,7 +128,7 @@ To interact with Kubernetes resources JsonServer requires to have the following 
   resources: ["jsonservers"]
   verbs: ["get", "list", "watch", "create", "update", "delete"]
 - apiGroups: ["example.com"]
-  resources: ["jsonservers/status", jsonservers/finalizers]
+  resources: ["jsonservers/status"]
   verbs: ["get", "update", "patch"]
 
 #### Events to Handle
@@ -148,7 +148,6 @@ Actions:
   - Create a new ConfigMap
     - Store the JSON configuration with the key "db.json"
   - Set owner references on the Deployment, Service, and ConfigMap to ensure proper garbage collection when the JsonServer is deleted
-  - Add finalizers to the JsonServer to ensure resources are not prematurely deleted and that cleanup tasks are performed before deletion
 
 > I'd validate if child resources with same name and namespace are already exist and reflect it in the JsonServer status
 
