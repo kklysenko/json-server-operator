@@ -20,26 +20,40 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // JsonServerSpec defines the desired state of JsonServer
 type JsonServerSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Replicas is the number of desired pods. This is a pointer to distinguish between explicit
+	// zero and not specified. Defaults to 1.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Foo is an example field of JsonServer. Edit jsonserver_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// JsonConfig is the JSON configuration for the json-server
+	JsonConfig string `json:"jsonConfig,omitempty"`
 }
+
+type JsonServerState string
+
+const (
+	// SyncedJsonServerState indicating that the object was synced successfully
+	SyncedJsonServerState JsonServerState = "Synced"
+
+	// ErrorJsonServerState indicating that the object failed to sync
+	ErrorJsonServerState JsonServerState = "Error"
+)
 
 // JsonServerStatus defines the observed state of JsonServer
 type JsonServerStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// State indicates if the object was synced successfully
+	State JsonServerState `json:"state,omitempty"`
+
+	// Message provides additional information about the current state
+	Message string `json:"message,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:deepcopy-gen:true
 
 // JsonServer is the Schema for the jsonservers API
 type JsonServer struct {

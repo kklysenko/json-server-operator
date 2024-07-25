@@ -39,13 +39,26 @@ spec:
           spec:
             description: JsonServerSpec defines the desired state of JsonServer
             properties:
-              foo:
-                description: Foo is an example field of JsonServer. Edit jsonserver_types.go
-                  to remove/update
+              jsonConfig:
+                description: JsonConfig is the JSON configuration for the json-server
                 type: string
+              replicas:
+                description: |-
+                  Replicas is the number of desired pods. This is a pointer to distinguish between explicit
+                  zero and not specified. Defaults to 1.
+                format: int32
+                type: integer
             type: object
           status:
             description: JsonServerStatus defines the observed state of JsonServer
+            properties:
+              message:
+                description: Message provides additional information about the current
+                  state
+                type: string
+              state:
+                description: State indicates if the object was synced successfully
+                type: string
             type: object
         type: object
     served: true
