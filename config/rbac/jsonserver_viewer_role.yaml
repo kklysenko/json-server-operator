@@ -8,7 +8,7 @@ metadata:
   name: jsonserver-viewer-role
 rules:
 - apiGroups:
-  - apps.example.com
+  - example.com
   resources:
   - jsonservers
   verbs:
@@ -16,7 +16,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - apps.example.com
+  - example.com
   resources:
   - jsonservers/status
   verbs:

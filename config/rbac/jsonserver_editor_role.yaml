@@ -8,7 +8,7 @@ metadata:
   name: jsonserver-editor-role
 rules:
 - apiGroups:
-  - apps.example.com
+  - example.com
   resources:
   - jsonservers
   verbs:
@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - apps.example.com
+  - example.com
   resources:
   - jsonservers/status
   verbs:

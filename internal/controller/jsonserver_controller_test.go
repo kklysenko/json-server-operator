@@ -27,7 +27,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appsv1 "example.com/jsonserver/api/v1"
+	v1 "example.com/jsonserver/api/v1"
 )
 
 var _ = Describe("JsonServer Controller", func() {
@@ -40,13 +40,13 @@ var _ = Describe("JsonServer Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		jsonserver := &appsv1.JsonServer{}
+		jsonserver := &v1.JsonServer{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind JsonServer")
 			err := k8sClient.Get(ctx, typeNamespacedName, jsonserver)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &appsv1.JsonServer{
+				resource := &v1.JsonServer{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,7 +59,7 @@ var _ = Describe("JsonServer Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &appsv1.JsonServer{}
+			resource := &v1.JsonServer{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

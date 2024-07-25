@@ -13,7 +13,7 @@ resources:
     namespaced: true
   controller: true
   domain: example.com
-  group: apps
+  group: ""
   kind: JsonServer
   path: example.com/jsonserver/api/v1
   version: v1

@@ -5,7 +5,31 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - apps.example.com
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - example.com
   resources:
   - jsonservers
   verbs:
@@ -17,16 +41,26 @@ rules:
   - update
   - watch
 - apiGroups:
-  - apps.example.com
+  - example.com
   resources:
   - jsonservers/finalizers
   verbs:
   - update
 - apiGroups:
-  - apps.example.com
+  - example.com
   resources:
   - jsonservers/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - resources=deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

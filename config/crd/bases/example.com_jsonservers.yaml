@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: jsonservers.apps.example.com
+  name: jsonservers.example.com
 spec:
-  group: apps.example.com
+  group: example.com
   names:
     kind: JsonServer
     listKind: JsonServerList
