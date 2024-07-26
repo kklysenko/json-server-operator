@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -44,13 +45,23 @@ const (
 // JsonServerStatus defines the observed state of JsonServer
 type JsonServerStatus struct {
 	// State indicates if the object was synced successfully
+	// +optional
 	State JsonServerState `json:"state,omitempty"`
 
 	// Message provides additional information about the current state
+	// +optional
 	Message string `json:"message,omitempty"`
+
+	// Replicas is the total number of non-terminated pods targeted by this deployment (their labels match the selector).
+	// +optional
+	Replicas int32 `json:"replicas,omitempty" protobuf:"varint,2,opt,name=replicas"`
+
+	// Selector that identifies the pods that are receiving active traffic
+	// +optional
+	Selector string `json:"selector,omitempty"`
 }
 
-func NewJsonServerStatus(err error) *JsonServerStatus {
+func NewJsonServerStatus(err error, deployment *appsv1.Deployment) *JsonServerStatus {
 	state := SyncedJsonServerState
 	message := "Synced successfully!"
 
@@ -59,13 +70,19 @@ func NewJsonServerStatus(err error) *JsonServerStatus {
 		message = err.Error()
 	}
 
-	return &JsonServerStatus{state, message}
+	return &JsonServerStatus{
+		State:    state,
+		Message:  message,
+		Replicas: deployment.Status.Replicas,
+		Selector: metav1.FormatLabelSelector(deployment.Spec.Selector),
+	}
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:deepcopy-gen:true
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
 
 // JsonServer is the Schema for the jsonservers API
 type JsonServer struct {

@@ -56,6 +56,15 @@ spec:
                 description: Message provides additional information about the current
                   state
                 type: string
+              replicas:
+                description: Replicas is the total number of non-terminated pods targeted
+                  by this deployment (their labels match the selector).
+                format: int32
+                type: integer
+              selector:
+                description: Selector that identifies the pods that are receiving
+                  active traffic
+                type: string
               state:
                 description: State indicates if the object was synced successfully
                 type: string
@@ -64,4 +73,8 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
       status: {}
