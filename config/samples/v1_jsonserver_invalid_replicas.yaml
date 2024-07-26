@@ -2,8 +2,9 @@ apiVersion: example.com/v1
 kind: JsonServer
 metadata:
   name: app-my-server
+  namespace: default
 spec:
-  replicas: 1
+  replicas: -1
   jsonConfig: |
     {
       "people": [

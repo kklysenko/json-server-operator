@@ -3,7 +3,6 @@ kind: JsonServer
 metadata:
   name: app-my-server
 spec:
-  replicas: 1
   jsonConfig: |
     {
       "people": [
