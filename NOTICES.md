@@ -217,10 +217,6 @@ Automatically sets default values for fields in JsonServer custom resources if n
 - Develop Mutation webhook
 
 ### Testing
-
-[//]: # (- Unit tests for controller logic)
-
-[//]: # (- Integration tests using local Kubernetes cluster)
 - Manual verification with kubectl
 
 
@@ -286,7 +282,7 @@ Expected Outcome:
 - Service is accessible on port 3000. 
 - Application is accessible via curl command or browser.
 
-TC-11 Invalid Replica NUmber
+TC-11 Invalid Replica Number
 Action: Create a JsonServer with negative number of replicas.
 Expected Outcome:
 - Request is rejected with error message: "Invalid replicas number."
