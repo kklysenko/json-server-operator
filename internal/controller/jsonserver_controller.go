@@ -56,7 +56,7 @@ type JsonServerReconciler struct {
 // +kubebuilder:rbac:groups=example.com,resources=jsonservers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=example.com,resources=jsonservers/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=example.com,resources=jsonservers/finalizers,verbs=update
-// +kubebuilder:rbac:groups=resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 
