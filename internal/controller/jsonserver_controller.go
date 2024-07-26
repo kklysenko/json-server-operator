@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +35,6 @@ import (
 )
 
 const (
-	JsonServerFinalizerName         = "example.com/finalizer"
 	JsonConfigKey                   = "db.json"
 	JsonConfigMapMountPath          = "/data"
 	JsonConfigPath                  = JsonConfigMapMountPath + "/" + JsonConfigKey
@@ -103,6 +103,20 @@ func (r *JsonServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
+	desiredConfigMap := generateConfigMap(jsonServer)
+	if !reflect.DeepEqual(desiredConfigMap.Data, configMap.Data) {
+		configMap.Data = desiredConfigMap.Data
+
+		if err := r.update(ctx, jsonServer, configMap); err != nil {
+			log.Log.Error(err, "Failed to update ConfigMap", "NamespacedName", req.NamespacedName)
+			return r.updateStatus(ctx, jsonServer, err)
+		}
+
+		log.Log.Info("Successfully updated ConfigMap", "NamespacedName", req.NamespacedName)
+
+		return r.updateStatus(ctx, jsonServer, nil)
+	}
+
 	deployment := &appsv1.Deployment{}
 
 	if err := r.Get(ctx, req.NamespacedName, deployment); err != nil {
@@ -126,6 +140,22 @@ func (r *JsonServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			log.Log.Info("Successfully created Deployment", "NamespacedName", req.NamespacedName)
 			return r.updateStatus(ctx, jsonServer, nil)
 		}
+	}
+
+	desiredDeployment := generateDeployment(jsonServer)
+	if !reflect.DeepEqual(desiredDeployment.Spec.Replicas, deployment.Spec.Replicas) {
+		deployment.Spec.Replicas = desiredDeployment.Spec.Replicas
+
+		if err := r.update(ctx, jsonServer, deployment); err != nil {
+			log.Log.Error(err, "Failed to update Deployment", "NamespacedName", req.NamespacedName)
+			return r.updateStatus(ctx, jsonServer, err)
+		}
+
+		log.Log.Info("Successfully updated Deployment", "NamespacedName", req.NamespacedName)
+
+		//TODO here I'd patch Deployment to restart it and apply the new configuration
+
+		return r.updateStatus(ctx, jsonServer, nil)
 	}
 
 	service := &corev1.Service{}
@@ -166,7 +196,7 @@ func (r *JsonServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *JsonServerReconciler) createConfigMap(ctx context.Context, req ctrl.Request, jsonServer *v1.JsonServer) error {
-	configMap := r.generateConfigMap(jsonServer)
+	configMap := generateConfigMap(jsonServer)
 
 	if err := ctrl.SetControllerReference(jsonServer, configMap, r.Scheme); err != nil {
 		log.Log.Error(err, "Failed to set owner reference on Configmap", "NamespacedName", req.NamespacedName)
@@ -177,7 +207,7 @@ func (r *JsonServerReconciler) createConfigMap(ctx context.Context, req ctrl.Req
 	return r.Create(ctx, configMap)
 }
 
-func (r *JsonServerReconciler) generateConfigMap(jsonServer *v1.JsonServer) *corev1.ConfigMap {
+func generateConfigMap(jsonServer *v1.JsonServer) *corev1.ConfigMap {
 	//TODO I'd copy JsonServer labels also
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -189,7 +219,7 @@ func (r *JsonServerReconciler) generateConfigMap(jsonServer *v1.JsonServer) *cor
 }
 
 func (r *JsonServerReconciler) createDeployment(ctx context.Context, req ctrl.Request, jsonServer *v1.JsonServer) error {
-	deployment := r.generateDeployment(jsonServer)
+	deployment := generateDeployment(jsonServer)
 
 	if err := ctrl.SetControllerReference(jsonServer, deployment, r.Scheme); err != nil {
 		log.Log.Error(err, "Failed to set owner reference on Deployment", "NamespacedName", req.NamespacedName)
@@ -200,7 +230,7 @@ func (r *JsonServerReconciler) createDeployment(ctx context.Context, req ctrl.Re
 	return r.Create(ctx, deployment)
 }
 
-func (r *JsonServerReconciler) generateDeployment(jsonServer *v1.JsonServer) *appsv1.Deployment {
+func generateDeployment(jsonServer *v1.JsonServer) *appsv1.Deployment {
 	//TODO I'd copy JsonServer labels also
 	matchLabels := client.MatchingLabels{
 		JsonServerMatchLabelsKey: jsonServer.Name,
@@ -260,18 +290,18 @@ func (r *JsonServerReconciler) generateDeployment(jsonServer *v1.JsonServer) *ap
 }
 
 func (r *JsonServerReconciler) createService(ctx context.Context, req ctrl.Request, jsonServer *v1.JsonServer) error {
-	configMap := r.generateService(jsonServer)
+	service := generateService(jsonServer)
 
-	if err := ctrl.SetControllerReference(jsonServer, configMap, r.Scheme); err != nil {
-		log.Log.Error(err, "Failed to set owner reference on Configmap", "NamespacedName", req.NamespacedName)
+	if err := ctrl.SetControllerReference(jsonServer, service, r.Scheme); err != nil {
+		log.Log.Error(err, "Failed to set owner reference on Service", "NamespacedName", req.NamespacedName)
 
 		return err
 	}
 
-	return r.Create(ctx, configMap)
+	return r.Create(ctx, service)
 }
 
-func (r *JsonServerReconciler) generateService(jsonServer *v1.JsonServer) *corev1.Service {
+func generateService(jsonServer *v1.JsonServer) *corev1.Service {
 	matchLabels := client.MatchingLabels{
 		JsonServerMatchLabelsKey: jsonServer.Name,
 	}
@@ -320,4 +350,27 @@ func (r *JsonServerReconciler) updateStatus(ctx context.Context, jsonServer *v1.
 	}
 
 	return ctrl.Result{}, originErr
+}
+
+func (r *JsonServerReconciler) update(ctx context.Context, jsonServer *v1.JsonServer, obj client.Object) error {
+	nn := types.NamespacedName{Name: jsonServer.Name, Namespace: jsonServer.Namespace}
+
+	if err := r.Update(ctx, obj); err != nil {
+		if apierrors.IsConflict(err) {
+			latest := obj
+
+			if err := r.Get(ctx, client.ObjectKeyFromObject(jsonServer), latest); err != nil {
+				log.Log.Error(err, fmt.Sprintf("Failed to fetch %s", obj.GetObjectKind()),
+					"NamespacedName", nn)
+				return err
+			}
+
+			return r.update(ctx, jsonServer, latest)
+		}
+		log.Log.Error(err, fmt.Sprintf("Failed to update %s", obj.GetObjectKind()), "NamespacedName", nn)
+
+		return err
+	}
+
+	return nil
 }
