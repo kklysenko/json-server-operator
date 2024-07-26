@@ -91,9 +91,18 @@ func main() {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
-	webhookServer := webhook.NewServer(webhook.Options{
+	webhookOptions := webhook.Options{
 		TLSOpts: tlsOpts,
-	})
+	}
+
+	//added CERTDIR to be able to test webhooks locally
+	certDir := os.Getenv("CERTDIR")
+
+	if certDir != "" {
+		webhookOptions.CertDir = certDir
+	}
+
+	webhookServer := webhook.NewServer(webhookOptions)
 
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
 	// More info:
@@ -149,6 +158,13 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "JsonServer")
 		os.Exit(1)
+	}
+
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = (&v1.JsonServer{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "JsonServer")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
