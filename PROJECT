@@ -5,7 +5,7 @@
 domain: example.com
 layout:
 - go.kubebuilder.io/v4
-projectName: json-scheduler
+projectName: json-server-operator
 repo: example.com/jsonserver
 resources:
 - api:

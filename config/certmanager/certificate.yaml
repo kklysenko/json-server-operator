@@ -5,7 +5,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   labels:
-    app.kubernetes.io/name: json-scheduler
+    app.kubernetes.io/name: json-server-operator
     app.kubernetes.io/managed-by: kustomize
   name: selfsigned-issuer
   namespace: system
@@ -19,8 +19,8 @@ metadata:
     app.kubernetes.io/name: certificate
     app.kubernetes.io/instance: serving-cert
     app.kubernetes.io/component: certificate
-    app.kubernetes.io/created-by: json-scheduler
-    app.kubernetes.io/part-of: json-scheduler
+    app.kubernetes.io/created-by: json-server-operator
+    app.kubernetes.io/part-of: json-server-operator
     app.kubernetes.io/managed-by: kustomize
   name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
   namespace: system
