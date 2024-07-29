@@ -1,0 +1,53 @@
+name: Build, push, update Helm chart
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Check version change
+        id: version-changed
+        uses: tj-actions/changed-files@v44
+        with:
+          files: VERSION
+      - name: Get version
+        if: steps.version-changed.outputs.any_changed == 'true'
+        id: version
+        run: |
+          VER=$(cat VERSION)
+          echo "version=$VER" >> GITHUB_OUTPUT
+      - name: Build image
+        id: build
+        if: steps.version-changed.outputs.any_changed == 'true'
+        run: make docker-build
+      - name: Login to Docker Hub
+        id: docker-login
+        if: steps.build.outcome == 'success'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Push image
+        id: push
+        if: steps.docker-login.outcome == 'success'
+        run: make docker-push
+      - name: Update Helm chart
+        if: steps.push.outcome == 'success'
+        uses: fjogeleit/yaml-update-action@main
+        with:
+          valueFile: 'chart/values.yaml'
+          propertyPath: 'controllerManager.manager.image.tag'
+          value: ${{ steps.version.outputs.version }}
+          branch: helm-version/${{ steps.version.outputs.version }}
+          targetBranch: ${{ github.ref_name }}
+          createPR: false
+          message: 'Update Image Version to ${{ steps.version.outputs.version }}'

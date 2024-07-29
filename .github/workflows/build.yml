@@ -1,0 +1,29 @@
+name: Build image
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Check version change
+        id: version-changed
+        uses: tj-actions/changed-files@v44
+        with:
+          files: VERSION
+      - name: Build image
+        if: steps.version-changed.outputs.any_changed == 'true'
+        run: make docker-build
